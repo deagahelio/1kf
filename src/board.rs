@@ -1,7 +1,7 @@
-use ggez::{self, mint, graphics, Context, GameResult};
+use ggez::{mint, graphics, Context, GameResult};
 use ggez::graphics::{DrawMode, Mesh, Rect};
 use anyhow::{Result, anyhow};
-use crate::piece::Shape;
+use crate::piece::{PIECE_COLORS, Shape};
 
 const BOARD_WIDTH: usize = 10;
 const BOARD_HEIGHT: usize = 20;
@@ -17,7 +17,7 @@ impl Board {
         Self {
             pos: pos.into(),
             cell_size: cell_size,
-            grid: [Some(Shape::T); BOARD_WIDTH * BOARD_HEIGHT],
+            grid: [None; BOARD_WIDTH * BOARD_HEIGHT],
         }
     }
 
@@ -42,19 +42,40 @@ impl Board {
     }
 
     pub fn draw(&self, ctx: &mut Context) -> GameResult {
-        let rect = Mesh::new_rectangle(
+        let block_mesh = Mesh::new_rectangle(
             ctx,
             DrawMode::fill(),
             Rect::new(self.pos.x, self.pos.y, self.cell_size, self.cell_size),
             graphics::WHITE
         )?;
 
+        let cell_mesh = Mesh::new_rectangle(
+            ctx,
+            DrawMode::stroke(1.0),
+            Rect::new(self.pos.x, self.pos.y, self.cell_size, self.cell_size),
+            (243, 243, 237, 50).into()
+        )?;
+
+        let grid_mesh = Mesh::new_rectangle(
+            ctx,
+            DrawMode::stroke(1.0),
+            Rect::new(self.pos.x, self.pos.y, self.cell_size * BOARD_WIDTH as f32, self.cell_size * BOARD_HEIGHT as f32),
+            (243, 243, 237, 50).into()
+        )?;
+
+        graphics::draw(ctx, &grid_mesh, ([0.0, 0.0],))?;
+
         for y in 0..BOARD_HEIGHT {
             for x in 0..BOARD_WIDTH {
+                let pos = [x as f32 * self.cell_size, y as f32 * self.cell_size];
+
                 let block = self.get(x, y).unwrap();
                 if block.is_some() {
-                    graphics::draw(ctx, &rect, ([x as f32 * self.cell_size, y as f32 * self.cell_size],))?;
+                    let color = PIECE_COLORS[&block.unwrap()];
+                    graphics::draw(ctx, &block_mesh, (pos, color))?;
                 }
+
+                graphics::draw(ctx, &cell_mesh, (pos,))?;
             }
         }
 
