@@ -3,23 +3,23 @@ use crate::board::Board;
 use crate::piece::Shape;
 use crate::generator::PieceGenerator;
 
-pub struct GameState {
+pub struct GameState<G: PieceGenerator> {
     board: Board,
     current: Shape,
-    generator: Box<dyn PieceGenerator>,
+    generator: G,
 }
 
-impl GameState {
-    pub fn new(generator: Box<dyn PieceGenerator>) -> Self {
+impl<G: PieceGenerator> GameState<G> {
+    pub fn new(mut generator: G) -> Self {
         Self {
             board: Board::new([16.0, 16.0], 16.0),
-            current: Shape::T,
+            current: generator.get_next(),
             generator: generator,
         }
     }
 }
 
-impl event::EventHandler for GameState {
+impl<G: PieceGenerator> event::EventHandler for GameState<G> {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         Ok(())
     }

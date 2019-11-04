@@ -9,6 +9,6 @@ fn main() -> GameResult {
         .window_setup(ggez::conf::WindowSetup::default().title("1kf"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(288.0, 352.0))
         .build()?;
-    let state = &mut GameState::new(Box::new(SevenBagGenerator::new()));
+    let state = &mut GameState::new(SevenBagGenerator::new());
     event::run(ctx, event_loop, state)
 }
