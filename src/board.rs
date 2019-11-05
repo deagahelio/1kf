@@ -1,10 +1,10 @@
 use ggez::{mint, graphics, Context, GameResult};
 use ggez::graphics::{DrawMode, Mesh, Rect};
 use anyhow::{Result, anyhow};
-use crate::piece::{PIECE_COLORS, PIECE_SHAPES, Shape};
+use crate::piece::{PIECE_COLORS, PIECE_SHAPES, Rotation, Shape, rotate_piece};
 
-const BOARD_WIDTH: usize = 10;
-const BOARD_HEIGHT: usize = 20;
+pub const BOARD_WIDTH: usize = 10;
+pub const BOARD_HEIGHT: usize = 20;
 
 pub struct Board {
     pos: mint::Point2<f32>,
@@ -40,12 +40,8 @@ impl Board {
         Ok(old)
     }
 
-    pub fn put(&mut self, mut x: usize, y: usize, piece: Shape) -> Result<()> {
-        if y < 16 {
-            return Err(anyhow!("invalid y position"));
-        }
-
-        let shape = &PIECE_SHAPES[&piece];
+    pub fn put(&mut self, mut x: usize, rotation: Rotation, piece: Shape) -> Result<()> {
+        let shape = rotate_piece(&PIECE_SHAPES[&piece], rotation);
         let shape_height = shape.len();
         let shape_width = shape[0].len();
 
@@ -53,27 +49,27 @@ impl Board {
             x = BOARD_WIDTH - shape_width;
         }
 
-        let mut drop_y = 0;
-        'drop: while drop_y <= BOARD_HEIGHT - shape_height {
+        let mut y = 0;
+        'drop: while y <= BOARD_HEIGHT - shape_height {
             for piece_y in 0..shape_height {
                 let row = &shape[piece_y];
                 for piece_x in 0..shape_width {
                     if row[piece_x] == 1 {
-                        if self.get(x + piece_x, drop_y + piece_y).unwrap().is_some() {
+                        if self.get(x + piece_x, y + piece_y).unwrap().is_some() {
                             break 'drop;
                         }
                     }
                 }
             }
-            drop_y += 1;
+            y += 1;
         }
-        drop_y -= 1;
+        y -= 1;
 
         for piece_y in 0..shape_height {
             let row = &shape[piece_y];
             for piece_x in 0..shape_width {
                 if row[piece_x] == 1 {
-                    self.set(x + piece_x, drop_y + piece_y, piece).unwrap();
+                    self.set(x + piece_x, y + piece_y, piece).unwrap();
                 }
             }
         }

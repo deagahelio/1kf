@@ -1,7 +1,7 @@
 use ggez::{self, graphics, event, GameResult, Context};
 use ggez::input::mouse::MouseButton;
-use crate::board::{Board};
-use crate::piece::Shape;
+use crate::board::{BOARD_HEIGHT, Board};
+use crate::piece::{Rotation, Shape};
 use crate::generator::PieceGenerator;
 use crate::queue::Queue;
 
@@ -21,6 +21,16 @@ impl<G: PieceGenerator> GameState<G> {
             generator,
         }
     }
+
+    pub fn get_rotation(&self, grid_y: usize) -> Option<Rotation> {
+        match BOARD_HEIGHT - grid_y {
+            4 => Some(Rotation::OneEighty),
+            3 => Some(Rotation::Clockwise),
+            2 => Some(Rotation::Normal),
+            1 => Some(Rotation::CounterClockwise),
+            _ => None,
+        }
+    }
 }
 
 impl<G: PieceGenerator> event::EventHandler for GameState<G> {
@@ -31,8 +41,10 @@ impl<G: PieceGenerator> event::EventHandler for GameState<G> {
     fn mouse_button_down_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         if button == MouseButton::Left {
             if let Some((grid_x, grid_y)) = self.board.click(x, y) {
-                if self.board.put(grid_x, grid_y, self.current).is_ok() {
-                    self.current = self.generator.get_next();
+                if let Some(rotation) = self.get_rotation(grid_y) {
+                    if self.board.put(grid_x, rotation, self.current).is_ok() {
+                        self.current = self.generator.get_next();
+                    }
                 }
             }
         }
