@@ -13,10 +13,10 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(pos: impl Into<mint::Point2<f32>>, cell_size: f32) -> Self {
+    pub fn new(pos: mint::Point2<f32>, cell_size: f32) -> Self {
         Self {
-            pos: pos.into(),
-            cell_size: cell_size,
+            pos,
+            cell_size,
             grid: [None; BOARD_WIDTH * BOARD_HEIGHT],
         }
     }

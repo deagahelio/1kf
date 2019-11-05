@@ -3,9 +3,11 @@ use ggez::input::mouse::MouseButton;
 use crate::board::{Board};
 use crate::piece::Shape;
 use crate::generator::PieceGenerator;
+use crate::queue::Queue;
 
 pub struct GameState<G: PieceGenerator> {
     board: Board,
+    queue: Queue,
     current: Shape,
     generator: G,
 }
@@ -13,9 +15,10 @@ pub struct GameState<G: PieceGenerator> {
 impl<G: PieceGenerator> GameState<G> {
     pub fn new(mut generator: G) -> Self {
         Self {
-            board: Board::new([32.0, 32.0], 32.0),
+            board: Board::new([32.0, 32.0].into(), 32.0),
+            queue: Queue::new([384.0, 32.0].into(), 32.0),
             current: generator.get_next(),
-            generator: generator,
+            generator,
         }
     }
 }
@@ -38,6 +41,7 @@ impl<G: PieceGenerator> event::EventHandler for GameState<G> {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, (23, 23, 19).into());
         self.board.draw(ctx)?;
+        self.queue.draw(ctx, &self.current)?;
         graphics::present(ctx)
     }
 }
