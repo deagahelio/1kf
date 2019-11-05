@@ -44,6 +44,7 @@ impl<G: PieceGenerator> event::EventHandler for GameState<G> {
                 if let Some(rotation) = self.get_rotation(grid_y) {
                     if self.board.put(grid_x, rotation, self.current).is_ok() {
                         self.current = self.generator.get_next();
+                        self.board.clear_lines();
                     }
                 }
             }

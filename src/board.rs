@@ -33,10 +33,10 @@ impl Board {
         Ok(self.grid[Board::index(x, y)?])
     }
 
-    pub fn set(&mut self, x: usize, y: usize, new: Shape) -> Result<Option<Shape>> {
+    pub fn set(&mut self, x: usize, y: usize, new: Option<Shape>) -> Result<Option<Shape>> {
         let index = Board::index(x, y)?;
         let old = self.grid[index];
-        self.grid[index] = Some(new);
+        self.grid[index] = new;
         Ok(old)
     }
 
@@ -69,12 +69,31 @@ impl Board {
             let row = &shape[piece_y];
             for piece_x in 0..shape_width {
                 if row[piece_x] == 1 {
-                    self.set(x + piece_x, y + piece_y, piece).unwrap();
+                    self.set(x + piece_x, y + piece_y, Some(piece)).unwrap();
                 }
             }
         }
 
         Ok(())
+    }
+
+    pub fn clear_line(&mut self, line_y: usize) {
+        for y in (0..line_y).rev() {
+            for x in 0..BOARD_WIDTH {
+                self.set(x, y + 1, self.get(x, y).unwrap()).unwrap();
+            }
+        }
+    }
+
+    pub fn clear_lines(&mut self) {
+        'lines: for y in 0..BOARD_HEIGHT {
+            for x in 0..BOARD_WIDTH {
+                if self.get(x, y).unwrap().is_none() {
+                    continue 'lines;
+                }
+            }
+            self.clear_line(y);
+        }
     }
 
     pub fn click(&self, x: f32, y: f32) -> Option<(usize, usize)> {
