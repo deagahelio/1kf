@@ -1,7 +1,7 @@
 use ggez::{mint, graphics, Context, GameResult};
 use ggez::graphics::{DrawMode, Mesh, Rect};
 use anyhow::{Result, anyhow};
-use crate::piece::{PIECE_COLORS, Shape};
+use crate::piece::{PIECE_COLORS, PIECE_SHAPES, Shape};
 
 const BOARD_WIDTH: usize = 10;
 const BOARD_HEIGHT: usize = 20;
@@ -22,11 +22,10 @@ impl Board {
     }
 
     pub fn index(x: usize, y: usize) -> Result<usize> {
-        let index = y * BOARD_WIDTH + x;
-        if index >= BOARD_WIDTH * BOARD_HEIGHT {
+        if x >= BOARD_WIDTH || y >= BOARD_HEIGHT {
             Err(anyhow!("out of bounds index"))
         } else {
-            Ok(index)
+            Ok(y * BOARD_WIDTH + x)
         }
     }
 
@@ -41,6 +40,61 @@ impl Board {
         Ok(old)
     }
 
+    pub fn put(&mut self, mut x: usize, y: usize, piece: Shape) -> Result<()> {
+        if y < 16 {
+            return Err(anyhow!("invalid y position"));
+        }
+
+        let shape = &PIECE_SHAPES[&piece];
+        let shape_height = shape.len();
+        let shape_width = shape[0].len();
+
+        if x > BOARD_WIDTH - shape_width {
+            x = BOARD_WIDTH - shape_width;
+        }
+
+        let mut drop_y = 0;
+        'drop: while drop_y <= BOARD_HEIGHT - shape_height {
+            for piece_y in 0..shape_height {
+                let row = &shape[piece_y];
+                for piece_x in 0..shape_width {
+                    if row[piece_x] == 1 {
+                        if self.get(x + piece_x, drop_y + piece_y).unwrap().is_some() {
+                            break 'drop;
+                        }
+                    }
+                }
+            }
+            drop_y += 1;
+        }
+        drop_y -= 1;
+
+        for piece_y in 0..shape_height {
+            let row = &shape[piece_y];
+            for piece_x in 0..shape_width {
+                if row[piece_x] == 1 {
+                    self.set(x + piece_x, drop_y + piece_y, piece).unwrap();
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn click(&self, x: f32, y: f32) -> Option<(usize, usize)> {
+        if x > self.pos.x &&
+           y > self.pos.y &&
+           x < (self.pos.x + BOARD_WIDTH as f32 * self.cell_size) &&
+           y < (self.pos.y + BOARD_HEIGHT as f32 * self.cell_size) {
+            let grid_x = (x - self.pos.x) as usize / self.cell_size as usize;
+            let grid_y = (y - self.pos.y) as usize / self.cell_size as usize;
+
+            Some((grid_x, grid_y))
+        } else {
+            None
+        }
+    }
+
     pub fn draw(&self, ctx: &mut Context) -> GameResult {
         let block_mesh = Mesh::new_rectangle(
             ctx,
@@ -53,14 +107,14 @@ impl Board {
             ctx,
             DrawMode::stroke(1.0),
             Rect::new(self.pos.x, self.pos.y, self.cell_size, self.cell_size),
-            (243, 243, 237, 50).into()
+            (243, 243, 237, 25).into()
         )?;
 
         let grid_mesh = Mesh::new_rectangle(
             ctx,
             DrawMode::stroke(1.0),
             Rect::new(self.pos.x, self.pos.y, self.cell_size * BOARD_WIDTH as f32, self.cell_size * BOARD_HEIGHT as f32),
-            (243, 243, 237, 50).into()
+            (243, 243, 237, 25).into()
         )?;
 
         graphics::draw(ctx, &grid_mesh, ([0.0, 0.0],))?;
