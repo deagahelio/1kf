@@ -1,5 +1,6 @@
 use ggez::{mint, graphics, Context, GameResult};
 use ggez::graphics::{DrawMode, Mesh, Rect};
+use ggez::input::mouse;
 use anyhow::{Result, anyhow};
 use crate::piece::{PIECE_COLORS, PIECE_SHAPES, Rotation, Shape, rotate_piece};
 
@@ -41,21 +42,32 @@ impl Board {
         Ok(old)
     }
 
-    pub fn put(&mut self, mut x: usize, rotation: Rotation, piece: Shape) -> Result<()> {
+    pub fn put(&mut self, x: usize, rotation: Rotation, piece: Shape) -> Result<()> {
         let shape = rotate_piece(&PIECE_SHAPES[&piece], rotation);
-        let shape_height = shape.len();
-        let shape_width = shape[0].len();
 
-        if x > self.width - shape_width {
-            x = self.width - shape_width;
+        let (x, y) = self.drop(x, &shape);
+
+        for (piece_y, row) in shape.iter().enumerate() {
+            for (piece_x, col) in row.iter().enumerate() {
+                if *col == 1 {
+                    self.set(x + piece_x, y + piece_y, Some(piece)).unwrap();
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn drop(&self, mut x: usize, shape: &Vec<Vec<u8>>) -> (usize, usize) {
+        if x > self.width - shape[0].len() {
+            x = self.width - shape[0].len();
         }
 
         let mut y = 0;
-        'drop: while y <= self.height - shape_height {
-            for piece_y in 0..shape_height {
-                let row = &shape[piece_y];
-                for piece_x in 0..shape_width {
-                    if row[piece_x] == 1 {
+        'drop: while y <= self.height - shape.len() {
+            for (piece_y, row) in shape.iter().enumerate() {
+                for (piece_x, col) in row.iter().enumerate() {
+                    if *col == 1 {
                         if self.get(x + piece_x, y + piece_y).unwrap().is_some() {
                             break 'drop;
                         }
@@ -64,18 +76,7 @@ impl Board {
             }
             y += 1;
         }
-        y -= 1;
-
-        for piece_y in 0..shape_height {
-            let row = &shape[piece_y];
-            for piece_x in 0..shape_width {
-                if row[piece_x] == 1 {
-                    self.set(x + piece_x, y + piece_y, Some(piece)).unwrap();
-                }
-            }
-        }
-
-        Ok(())
+        (x, y - 1)
     }
 
     pub fn get_rotation(&self, grid_y: usize) -> Option<Rotation> {
@@ -121,7 +122,39 @@ impl Board {
         }
     }
 
-    pub fn draw(&self, ctx: &mut Context) -> GameResult {
+    pub fn draw_ghost(&self, ctx: &mut Context, piece: &Shape) -> GameResult {
+        let mint::Point2 { x, y } = mouse::position(ctx);
+
+        if let Some((grid_x, grid_y)) = self.click(x, y) {
+            if let Some(rotation) = self.get_rotation(grid_y) {
+                let shape = rotate_piece(&PIECE_SHAPES[piece], rotation);
+                let (grid_x, grid_y) = self.drop(grid_x, &shape);
+
+                let block_mesh = Mesh::new_rectangle(
+                    ctx,
+                    DrawMode::fill(),
+                    Rect::new(self.pos.x + grid_x as f32 * self.cell_size,
+                              self.pos.y + grid_y as f32 * self.cell_size,
+                              self.cell_size,
+                              self.cell_size),
+                    (255, 255, 255, 25).into()
+                )?;
+
+                for (piece_y, row) in shape.iter().enumerate() {
+                    for (piece_x, col) in row.iter().enumerate() {
+                        if *col == 1 {
+                            let pos = [piece_x as f32 * self.cell_size, piece_y as f32 * self.cell_size];
+                            graphics::draw(ctx, &block_mesh, (pos,))?;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn draw(&self, ctx: &mut Context, current: &Shape) -> GameResult {
         let block_mesh = Mesh::new_rectangle(
             ctx,
             DrawMode::fill(),
@@ -160,7 +193,7 @@ impl Board {
         graphics::draw(ctx, &grid_mesh, ([0.0, 0.0],))?;
 
         for y in 0..self.height {
-            for x in 0..self.width{
+            for x in 0..self.width {
                 let pos = [x as f32 * self.cell_size, y as f32 * self.cell_size];
 
                 let block = self.get(x, y).unwrap();
@@ -172,6 +205,8 @@ impl Board {
                 graphics::draw(ctx, &cell_mesh, (pos,))?;
             }
         }
+
+        self.draw_ghost(ctx, current)?;
 
         graphics::draw(ctx, &highlight_mesh, ([0.0, 0.0],))?;
         graphics::draw(ctx, &highlight_outline_mesh, ([0.0, 0.0],))?;

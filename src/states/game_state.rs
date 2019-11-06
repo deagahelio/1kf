@@ -43,8 +43,8 @@ impl<G: PieceGenerator> event::EventHandler for GameState<G> {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, (23, 23, 19).into());
-        self.board.draw(ctx)?;
-        self.queue.draw(ctx, &self.current, &self.generator)?;
+        self.board.draw(ctx, &self.current)?;
+        self.queue.draw(ctx, &self.generator)?;
         graphics::present(ctx)
     }
 }
