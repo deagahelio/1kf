@@ -143,6 +143,20 @@ impl Board {
             (243, 243, 237, 25).into()
         )?;
 
+        let highlight_mesh = Mesh::new_rectangle(
+            ctx,
+            DrawMode::fill(),
+            Rect::new(self.pos.x, self.pos.y + (self.height - 4) as f32 * self.cell_size, self.cell_size * self.width as f32, self.cell_size * 4.0),
+            (255, 0, 0, 25).into()
+        )?;
+
+        let highlight_outline_mesh = Mesh::new_rectangle(
+            ctx,
+            DrawMode::stroke(3.0),
+            Rect::new(self.pos.x, self.pos.y + (self.height - 4) as f32 * self.cell_size, self.cell_size * self.width as f32, self.cell_size * 4.0),
+            (255, 0, 0, 255).into()
+        )?;
+
         graphics::draw(ctx, &grid_mesh, ([0.0, 0.0],))?;
 
         for y in 0..self.height {
@@ -158,6 +172,9 @@ impl Board {
                 graphics::draw(ctx, &cell_mesh, (pos,))?;
             }
         }
+
+        graphics::draw(ctx, &highlight_mesh, ([0.0, 0.0],))?;
+        graphics::draw(ctx, &highlight_outline_mesh, ([0.0, 0.0],))?;
 
         Ok(())
     }

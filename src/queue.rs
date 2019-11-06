@@ -1,5 +1,6 @@
 use ggez::{mint, graphics, Context, GameResult};
 use ggez::graphics::{DrawMode, Mesh, Rect};
+use crate::generator::PieceGenerator;
 use crate::piece::{PIECE_SHAPES, PIECE_COLORS, Shape};
 
 pub struct Queue {
@@ -15,25 +16,35 @@ impl Queue {
         }
     }
 
-    pub fn draw(&self, ctx: &mut Context, current: &Shape) -> GameResult {
+    pub fn draw_piece(&self, ctx: &mut Context, piece: &Shape, x: f32, y: f32) -> GameResult<f32> {
         let block_mesh = Mesh::new_rectangle(
             ctx,
             DrawMode::fill(),
-            Rect::new(self.pos.x, self.pos.y, self.cell_size, self.cell_size),
+            Rect::new(x, y, self.cell_size, self.cell_size),
             graphics::WHITE
         )?;
 
-        let shape = &PIECE_SHAPES[current];
-        let color = PIECE_COLORS[current];
+        let shape = &PIECE_SHAPES[piece];
+        let color = PIECE_COLORS[piece];
 
-        for y in 0..shape.len() {
-            let row = &shape[y];
-            for x in 0..row.len() {
-                if row[x] == 1 {
-                    let pos = [x as f32 * self.cell_size, y as f32 * self.cell_size];
+        for shape_y in 0..shape.len() {
+            let row = &shape[shape_y];
+            for shape_x in 0..row.len() {
+                if row[shape_x] == 1 {
+                    let pos = [shape_x as f32 * self.cell_size, shape_y as f32 * self.cell_size];
                     graphics::draw(ctx, &block_mesh, (pos, color))?;
                 }
             }
+        }
+
+        Ok(shape.len() as f32 * self.cell_size)
+    }
+
+    pub fn draw(&self, ctx: &mut Context, current: &Shape, generator: &impl PieceGenerator) -> GameResult {
+        let mut offset = self.draw_piece(ctx, current, self.pos.x, self.pos.y)? + self.cell_size;
+        
+        for piece in generator.peek_next(4).iter() {
+            offset += self.draw_piece(ctx, piece, self.pos.x, self.pos.y + offset)? + self.cell_size;
         }
 
         Ok(())
